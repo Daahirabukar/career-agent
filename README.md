@@ -116,6 +116,6 @@ CI i `.github/workflows/ci.yml` bygger og tester backend og bygger frontend ved 
 
 ## Repository og næste fase
 
-Kun et lokalt Git-repository er oprettet. Intet er publiceret eller pushet. Et eventuelt GitHub-repository skal oprettes **privat** efter særskilt godkendelse.
+Projektet ligger i det private GitHub-repository [Daahirabukar/career-agent](https://github.com/Daahirabukar/career-agent). Lokale databaser og miljøfiler er ikke uploadet. GitHub Actions bygger og tester ved push og pull requests.
 
 Næste fase kan planlægge en jobcollector med kilderegler og dublethåndtering samt projektspecifikke Codex-skills. Det er ikke implementeret. Brugeren skal godkende fremtidige ansøgninger og ekstern afsendelse.
