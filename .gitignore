@@ -9,6 +9,10 @@
 *.sqlite
 *.sqlite*
 data/
+# Keep EF source code on case-insensitive macOS filesystems.
+!backend/CareerAgent.Api/Data/
+backend/CareerAgent.Api/Data/*
+!backend/CareerAgent.Api/Data/*.cs
 local-data/
 private/
 uploads/
