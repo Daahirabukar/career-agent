@@ -1,0 +1,222 @@
+[
+  {
+    "id": "imc",
+    "company": "IMC",
+    "provider": "Greenhouse",
+    "board": "imc",
+    "region": "Global",
+    "enabled": true,
+    "careerUrl": "https://job-boards.greenhouse.io/imc",
+    "evidence": "https://docs.greenhouse.io/job-board",
+    "note": "Publicerede job-API’er verificeret 2026-10-16. Kun GET, lokal anvendelse; ingen kandidat-/ansøgningsendpoints."
+  },
+  {
+    "id": "autoproff",
+    "company": "AutoProff",
+    "provider": "Greenhouse",
+    "board": "autoproff",
+    "region": "Global",
+    "enabled": true,
+    "careerUrl": "https://job-boards.greenhouse.io/autoproff",
+    "evidence": "https://docs.greenhouse.io/job-board",
+    "note": "Publicerede job-API’er verificeret 2026-10-16. Kun GET, lokal anvendelse; ingen kandidat-/ansøgningsendpoints."
+  },
+  {
+    "id": "intellishore",
+    "company": "Intellishore",
+    "provider": "Greenhouse",
+    "board": "intellishoredk",
+    "region": "Global",
+    "enabled": true,
+    "careerUrl": "https://job-boards.greenhouse.io/intellishoredk",
+    "evidence": "https://docs.greenhouse.io/job-board",
+    "note": "Publicerede job-API’er verificeret 2026-10-16. Kun GET, lokal anvendelse; ingen kandidat-/ansøgningsendpoints."
+  },
+  {
+    "id": "veo",
+    "company": "Veo",
+    "provider": "Lever",
+    "board": "veo",
+    "region": "Global",
+    "enabled": true,
+    "careerUrl": "https://jobs.lever.co/veo",
+    "evidence": "https://github.com/lever/postings-api",
+    "note": "Publicerede job-API’er verificeret 2026-10-16. Kun GET, lokal anvendelse; ingen kandidat-/ansøgningsendpoints."
+  },
+  {
+    "id": "siteimprove",
+    "company": "Siteimprove",
+    "provider": "Lever",
+    "board": "siteimprove",
+    "region": "EU",
+    "enabled": true,
+    "careerUrl": "https://jobs.eu.lever.co/siteimprove",
+    "evidence": "https://github.com/lever/postings-api",
+    "note": "Publicerede job-API’er verificeret 2026-10-16. Kun GET, lokal anvendelse; ingen kandidat-/ansøgningsendpoints."
+  },
+  {
+    "id": "systematic",
+    "company": "Systematic",
+    "provider": "Pending",
+    "board": "",
+    "region": "",
+    "enabled": false,
+    "careerUrl": "https://systematic.com/dk/karriere/",
+    "evidence": "",
+    "note": "Kandidat til kildekortlægning; karriereadresse/integrationsadgang er endnu ikke verificeret. Ingen automatiske kald."
+  },
+  {
+    "id": "trifork",
+    "company": "Trifork",
+    "provider": "Pending",
+    "board": "",
+    "region": "",
+    "enabled": false,
+    "careerUrl": "https://trifork.com/aarhus/",
+    "evidence": "",
+    "note": "Kandidat til kildekortlægning; karriereadresse/integrationsadgang er endnu ikke verificeret. Ingen automatiske kald."
+  },
+  {
+    "id": "lunar",
+    "company": "Lunar",
+    "provider": "Pending",
+    "board": "",
+    "region": "",
+    "enabled": false,
+    "careerUrl": "https://www.lunar.app",
+    "evidence": "",
+    "note": "Kandidat til kildekortlægning; karriereadresse/integrationsadgang er endnu ikke verificeret. Ingen automatiske kald."
+  },
+  {
+    "id": "danske-commodities",
+    "company": "Danske Commodities",
+    "provider": "Pending",
+    "board": "",
+    "region": "",
+    "enabled": false,
+    "careerUrl": "https://www.danskecommodities.com",
+    "evidence": "",
+    "note": "Kandidat til kildekortlægning; karriereadresse/integrationsadgang er endnu ikke verificeret. Ingen automatiske kald."
+  },
+  {
+    "id": "mft-energy",
+    "company": "MFT Energy",
+    "provider": "Pending",
+    "board": "",
+    "region": "",
+    "enabled": false,
+    "careerUrl": "https://mft-energy.com",
+    "evidence": "",
+    "note": "Kandidat til kildekortlægning; karriereadresse/integrationsadgang er endnu ikke verificeret. Ingen automatiske kald."
+  },
+  {
+    "id": "danske-bank",
+    "company": "Danske Bank",
+    "provider": "Pending",
+    "board": "",
+    "region": "",
+    "enabled": false,
+    "careerUrl": "https://danskebank.com",
+    "evidence": "",
+    "note": "Kandidat til kildekortlægning; karriereadresse/integrationsadgang er endnu ikke verificeret. Ingen automatiske kald."
+  },
+  {
+    "id": "jyske-bank",
+    "company": "Jyske Bank",
+    "provider": "Pending",
+    "board": "",
+    "region": "",
+    "enabled": false,
+    "careerUrl": "https://www.jyskebank.dk",
+    "evidence": "",
+    "note": "Kandidat til kildekortlægning; karriereadresse/integrationsadgang er endnu ikke verificeret. Ingen automatiske kald."
+  },
+  {
+    "id": "bankdata",
+    "company": "Bankdata",
+    "provider": "Pending",
+    "board": "",
+    "region": "",
+    "enabled": false,
+    "careerUrl": "https://www.bankdata.dk",
+    "evidence": "",
+    "note": "Kandidat til kildekortlægning; karriereadresse/integrationsadgang er endnu ikke verificeret. Ingen automatiske kald."
+  },
+  {
+    "id": "jysk",
+    "company": "JYSK",
+    "provider": "Pending",
+    "board": "",
+    "region": "",
+    "enabled": false,
+    "careerUrl": "https://job.jysk.dk",
+    "evidence": "",
+    "note": "Kandidat til kildekortlægning; karriereadresse/integrationsadgang er endnu ikke verificeret. Ingen automatiske kald."
+  },
+  {
+    "id": "salling-group",
+    "company": "Salling Group",
+    "provider": "Pending",
+    "board": "",
+    "region": "",
+    "enabled": false,
+    "careerUrl": "https://sallinggroup.com",
+    "evidence": "",
+    "note": "Kandidat til kildekortlægning; karriereadresse/integrationsadgang er endnu ikke verificeret. Ingen automatiske kald."
+  },
+  {
+    "id": "kamstrup",
+    "company": "Kamstrup",
+    "provider": "Pending",
+    "board": "",
+    "region": "",
+    "enabled": false,
+    "careerUrl": "https://www.kamstrup.com",
+    "evidence": "",
+    "note": "Kandidat til kildekortlægning; karriereadresse/integrationsadgang er endnu ikke verificeret. Ingen automatiske kald."
+  },
+  {
+    "id": "stibo-systems",
+    "company": "Stibo Systems",
+    "provider": "Pending",
+    "board": "",
+    "region": "",
+    "enabled": false,
+    "careerUrl": "https://www.stibosystems.com",
+    "evidence": "",
+    "note": "Kandidat til kildekortlægning; karriereadresse/integrationsadgang er endnu ikke verificeret. Ingen automatiske kald."
+  },
+  {
+    "id": "novicell",
+    "company": "Novicell",
+    "provider": "Pending",
+    "board": "",
+    "region": "",
+    "enabled": false,
+    "careerUrl": "https://www.novicell.dk",
+    "evidence": "",
+    "note": "Kandidat til kildekortlægning; karriereadresse/integrationsadgang er endnu ikke verificeret. Ingen automatiske kald."
+  },
+  {
+    "id": "twoday",
+    "company": "twoday",
+    "provider": "Pending",
+    "board": "",
+    "region": "",
+    "enabled": false,
+    "careerUrl": "https://www.twoday.dk",
+    "evidence": "",
+    "note": "Kandidat til kildekortlægning; karriereadresse/integrationsadgang er endnu ikke verificeret. Ingen automatiske kald."
+  },
+  {
+    "id": "lego",
+    "company": "LEGO",
+    "provider": "Pending",
+    "board": "",
+    "region": "",
+    "enabled": false,
+    "careerUrl": "https://www.lego.com/careers",
+    "evidence": "",
+    "note": "Kandidat til kildekortlægning; karriereadresse/integrationsadgang er endnu ikke verificeret. Ingen automatiske kald."
+  }
+]

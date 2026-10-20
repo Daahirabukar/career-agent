@@ -1,4 +1,6 @@
 using CareerAgent.Api.Data;
+using CareerAgent.Api.Discovery;
+using CareerAgent.Api.Matching;
 using Microsoft.EntityFrameworkCore;
 namespace CareerAgent.Api.Jobs;
 
@@ -8,13 +10,25 @@ public static class JobEndpoints
     {
         var group = app.MapGroup("/api/jobs");
         group.MapGet("", async (JobDbContext db, CancellationToken ct) =>
-            Results.Ok(await db.Jobs.AsNoTracking().OrderByDescending(j => j.CreatedAt).ToListAsync(ct)));
-        group.MapPost("", async (CreateJobRequest request, JobDbContext db, CancellationToken ct) =>
+            Results.Ok(await db.Jobs.AsNoTracking().OrderByDescending(j => j.Score).ThenByDescending(j => j.IsActive)
+                .ThenByDescending(j => j.StatusVerifiedAt).ThenByDescending(j => j.CreatedAt).ToListAsync(ct)));
+        group.MapPost("", async (CreateJobRequest request, JobDbContext db, ProfileStore profiles, CancellationToken ct) =>
         {
             var errors = Validate(request);
             if (errors.Count > 0) return Results.ValidationProblem(errors);
             var job = new Job { Title = request.Title!.Trim(), Company = request.Company!.Trim(),
-                Location = request.Location?.Trim() ?? "", SourceUrl = request.SourceUrl?.Trim() ?? "" };
+                Location = request.Location?.Trim() ?? "", SourceUrl = request.SourceUrl?.Trim() ?? "",
+                CanonicalUrl = string.IsNullOrWhiteSpace(request.SourceUrl) ? "" : ImportService.Canonical(request.SourceUrl.Trim()) };
+            try
+            {
+                var (profile, version) = profiles.Read();
+                job.ContentHash = ImportService.Hash(job);
+                RuleMatcher.Apply(job, profile, version);
+            }
+            catch (Exception e) when (e is IOException or InvalidOperationException or System.Text.Json.JsonException)
+            {
+                // Keep manual capture available if the private profile is temporarily unavailable.
+            }
             db.Jobs.Add(job);
             await db.SaveChangesAsync(ct);
             return Results.Created($"/api/jobs/{job.Id}", job);
