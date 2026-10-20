@@ -8,6 +8,11 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.AspNetCore.TestHost;
+using CareerAgent.Api.Documents;
+using CareerAgent.Api.Matching;
+using CareerAgent.Api.Jobs;
 using Xunit;
 
 namespace CareerAgent.Api.Tests;
@@ -15,15 +20,19 @@ namespace CareerAgent.Api.Tests;
 public sealed class ApiFactory(string? databasePath = null) : WebApplicationFactory<Program>
 {
     private readonly string database = databasePath ?? Path.Combine(Path.GetTempPath(), $"career-agent-test-{Guid.NewGuid()}.db");
+    private readonly string profile = Path.Combine(Path.GetTempPath(), $"career-agent-profile-{Guid.NewGuid()}.json");
+    public string Documents { get; } = Path.Combine(Path.GetTempPath(), $"career-agent-documents-{Guid.NewGuid()}");
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Development");
         builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?>
-        { ["ConnectionStrings:Jobs"] = $"Data Source={database};Pooling=False" }));
+        { ["ConnectionStrings:Jobs"] = $"Data Source={database};Pooling=False", ["CareerAgent:WorkerEnabled"] = "false", ["CareerAgent:ProfilePath"] = profile, ["CareerAgent:DocumentsPath"] = Documents }));
+        builder.ConfigureTestServices(services => services.RemoveAll<IDocumentGenerator>().AddSingleton<IDocumentGenerator, FakeDocumentGenerator>());
     }
     public HttpClient OpenClient()
     {
         var client = CreateClient();
+        File.WriteAllText(profile, JsonSerializer.Serialize(DiscoveryTests.Profile, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
         using var scope = Services.CreateScope();
         scope.ServiceProvider.GetRequiredService<JobDbContext>().Database.Migrate();
         return client;
@@ -31,7 +40,29 @@ public sealed class ApiFactory(string? databasePath = null) : WebApplicationFact
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);
-        if (disposing && databasePath is null) foreach (var suffix in new[] { "", "-shm", "-wal" }) File.Delete(database + suffix);
+        if (disposing)
+        {
+            File.Delete(profile);
+            if (Directory.Exists(Documents)) Directory.Delete(Documents, recursive: true);
+            if (databasePath is null) foreach (var suffix in new[] { "", "-shm", "-wal" }) File.Delete(database + suffix);
+        }
+    }
+}
+
+public sealed class FakeDocumentGenerator : IDocumentGenerator
+{
+    public int Calls { get; private set; }
+    public Guid[] LastReferenceIds { get; private set; } = [];
+    public Task<IReadOnlyDictionary<string, DocumentContent>> Generate(Job job, SearchProfile profile,
+        IReadOnlyList<(ReferenceDocument Reference, string Text)> references, string language, string kind, CancellationToken ct)
+    {
+        Calls++;
+        LastReferenceIds = references.Select(x => x.Reference.Id).ToArray();
+        var content = new DocumentContent("Software Engineer", job.Company, [new DocumentSection("Profil", [new DocumentBlock("paragraph", profile.Summary, [new DocumentEvidence("profile:summary", profile.Summary)])])]);
+        IReadOnlyDictionary<string, DocumentContent> result = kind == "Both"
+            ? new Dictionary<string, DocumentContent> { ["Cv"] = content, ["Application"] = content with { Title = "Ansøgning · " + job.Company } }
+            : new Dictionary<string, DocumentContent> { [kind] = content };
+        return Task.FromResult(result);
     }
 }
 
@@ -96,6 +127,7 @@ public sealed class JobApiTests
         using var scope = app.Services.CreateScope();
         var stored = await scope.ServiceProvider.GetRequiredService<JobDbContext>().Jobs.AsNoTracking().SingleAsync();
         Assert.Equal("Example developer", stored.Title);
+        Assert.NotNull(stored.Score);
         Assert.Equal(CareerAgent.Api.Jobs.JobStatus.Interview, stored.Status);
         Assert.Equal(DateTimeKind.Utc, job.GetProperty("createdAt").GetDateTime().Kind);
         var listed = await client.GetFromJsonAsync<JsonElement[]>("/api/jobs");
@@ -144,6 +176,19 @@ public sealed class JobApiTests
         var response = await client.SendAsync(request);
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
         Assert.Equal("http://localhost:5173", response.Headers.GetValues("Access-Control-Allow-Origin").Single());
+    }
+    [Theory]
+    [InlineData("PUT")]
+    [InlineData("DELETE")]
+    public async Task Local_frontend_document_methods_are_allowed(string method)
+    {
+        using var app = new ApiFactory(); using var client = app.OpenClient();
+        using var request = new HttpRequestMessage(HttpMethod.Options, "/api/documents");
+        request.Headers.Add("Origin", "http://localhost:5173");
+        request.Headers.Add("Access-Control-Request-Method", method);
+        var response = await client.SendAsync(request);
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.Contains(method, response.Headers.GetValues("Access-Control-Allow-Methods").Single());
     }
     [Fact]
     public async Task Health_and_empty_state_work()
