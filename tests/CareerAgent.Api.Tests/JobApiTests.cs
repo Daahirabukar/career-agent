@@ -51,13 +51,17 @@ public sealed class ApiFactory(string? databasePath = null) : WebApplicationFact
 
 public sealed class FakeDocumentGenerator : IDocumentGenerator
 {
+    public Exception? Failure { get; set; }
     public int Calls { get; private set; }
     public Guid[] LastReferenceIds { get; private set; } = [];
+    public string[] LastDocumentFacts { get; private set; } = [];
     public Task<IReadOnlyDictionary<string, DocumentContent>> Generate(Job job, SearchProfile profile,
         IReadOnlyList<(ReferenceDocument Reference, string Text)> references, string language, string kind, CancellationToken ct)
     {
         Calls++;
+        if (Failure is not null) throw Failure;
         LastReferenceIds = references.Select(x => x.Reference.Id).ToArray();
+        LastDocumentFacts = profile.DocumentFacts;
         var content = new DocumentContent("Software Engineer", job.Company, [new DocumentSection("Profil", [new DocumentBlock("paragraph", profile.Summary, [new DocumentEvidence("profile:summary", profile.Summary)])])]);
         IReadOnlyDictionary<string, DocumentContent> result = kind == "Both"
             ? new Dictionary<string, DocumentContent> { ["Cv"] = content, ["Application"] = content with { Title = "Ansøgning · " + job.Company } }

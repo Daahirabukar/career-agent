@@ -6,6 +6,7 @@ namespace CareerAgent.Api.Matching;
 public sealed record ProfileExperience(string Employer, string Type, string[] Skills, string Summary);
 public sealed record SearchProfile(string Summary, string[] Skills, string[] RoleTerms, string[] PreferredCities, string[] EastJutlandCities, string[] JutlandCities)
 {
+    public string[] DocumentFacts { get; init; } = [];
     public ProfileExperience[] Experience { get; init; } = [];
 }
 public sealed class ProfileStore(IConfiguration configuration)

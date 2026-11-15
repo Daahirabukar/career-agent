@@ -7,6 +7,7 @@ public sealed record SourceDefinition(string Id, string Company, string Provider
     {
         "Greenhouse" => new($"https://boards-api.greenhouse.io/v1/boards/{Uri.EscapeDataString(Board)}/jobs?content=true"),
         "Lever" => new($"https://{(Region == "EU" ? "api.eu.lever.co" : "api.lever.co")}/v0/postings/{Uri.EscapeDataString(Board)}?mode=json&skip=0&limit=1000"),
+        "Teamtailor" => new($"https://{Board}/jobs.rss"),
         _ => throw new InvalidOperationException("Kilden har ingen understøttet integration.")
     };
 }

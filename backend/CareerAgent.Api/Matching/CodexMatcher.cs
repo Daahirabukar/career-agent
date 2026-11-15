@@ -65,14 +65,8 @@ public sealed class CodexMatcher(IConfiguration configuration) : ICodexMatcher
             {
                 await process.StandardInput.WriteAsync(prompt.AsMemory(), timeout.Token); process.StandardInput.Close();
                 await process.WaitForExitAsync(timeout.Token);
-                var stdout = await stdoutTask; await stderrTask; // Never log prompts, auth or raw process output.
-                if (process.ExitCode != 0 || !File.Exists(output)) throw new InvalidOperationException("Codex er ikke tilgængelig. Kontrollér ChatGPT-login og kvote; lokal score er bevaret.");
-                foreach (var line in stdout.Split('\n', StringSplitOptions.RemoveEmptyEntries))
-                {
-                    using var entry = JsonDocument.Parse(line);
-                    if (entry.RootElement.TryGetProperty("item", out var item) && item.TryGetProperty("type", out var kind) && kind.GetString() is not ("agent_message" or "reasoning"))
-                        throw new InvalidDataException("AI-kørsel forsøgte en anden handling end tekstvurdering; svaret blev afvist.");
-                }
+                var stdout = await stdoutTask; var diagnostic = await stderrTask;
+                CodexExecution.ValidateCompletedRun(process.ExitCode, File.Exists(output), stdout, diagnostic);
                 return Validate(await File.ReadAllTextAsync(output, timeout.Token), jobText);
             }
             finally { if (!process.HasExited) process.Kill(entireProcessTree: true); }

@@ -15,6 +15,14 @@ public static class DocumentEndpoints
     private static readonly string[] Kinds = ["Cv", "Application"];
     public static void MapDocumentEndpoints(this WebApplication app)
     {
+        app.MapGet("/api/document-profile", (DocumentProfileStore profile) => Results.Ok(profile.Read()));
+        app.MapPut("/api/document-profile", (SaveDocumentProfileRequest request, DocumentProfileStore store) =>
+        {
+            if (!request.Confirmed || !DocumentProfileStore.Valid(request.Profile))
+                return Results.ValidationProblem(new Dictionary<string, string[]> { ["profile"] = ["Bekræft dine fakta, og hold hvert tekstfelt under 4.000 tegn og kontaktfelter under 200 tegn."] });
+            store.Save(request.Profile!);
+            return Results.Ok(request.Profile);
+        });
         app.MapGet("/api/references", async (JobDbContext db, CancellationToken ct) => Results.Ok(
             (await db.ReferenceDocuments.AsNoTracking().OrderByDescending(x => x.CreatedAt).ToListAsync(ct)).Select(ToDto)));
         app.MapPost("/api/references", async (HttpRequest request, JobDbContext db, DocumentStorage storage, CancellationToken ct) =>
@@ -58,7 +66,7 @@ public static class DocumentEndpoints
             return Results.Ok(response);
         });
         app.MapPost("/api/jobs/{jobId:guid}/documents/generate", async (Guid jobId, GenerateDocumentsRequest request,
-            JobDbContext db, ProfileStore profiles, DocumentStorage storage, IDocumentGenerator generator, DocumentGenerationGate gate, CancellationToken ct) =>
+            JobDbContext db, ProfileStore profiles, DocumentStorage storage, IDocumentGenerator generator, DocumentGenerationGate gate, DocumentProfileStore documentProfiles, CancellationToken ct) =>
         {
             if (!await gate.Lock.WaitAsync(0, ct)) return Results.Problem(statusCode: 409, title: "En dokumentgenerering kører allerede.");
             try
@@ -77,13 +85,18 @@ public static class DocumentEndpoints
                 var lang = request.Language;
                 var (profile, profileVersion) = profiles.Read();
                 var context = references.Select(r => (r, storage.ReadReferenceText(r))).ToArray();
+                var documentProfile = documentProfiles.Read();
+                var extraFacts = new[] { documentProfile.Experience, documentProfile.Education, documentProfile.Projects, documentProfile.Motivation }
+                    .Where(text => !string.IsNullOrWhiteSpace(text)).ToArray();
+                profile = profile with { DocumentFacts = extraFacts };
+                profileVersion += ":" + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(JsonSerializer.Serialize(documentProfile, JsonOptions))))[..16];
                 var generated = await generator.Generate(job, profile, context, lang, request.Kind, ct);
                 foreach (var (kind, content) in generated)
                 {
                     var document = await db.GeneratedDocuments.SingleOrDefaultAsync(x => x.JobId == jobId && x.Kind == kind, ct);
                     if (document is null) { document = new GeneratedDocument { JobId = jobId, Kind = kind }; db.GeneratedDocuments.Add(document); }
                     var number = (await db.GeneratedDocumentVersions.Where(x => x.DocumentId == document.Id).Select(x => (int?)x.Number).MaxAsync(ct) ?? 0) + 1;
-                    var json = JsonSerializer.Serialize(content, JsonOptions);
+                    var json = JsonSerializer.Serialize(content with { Identity = documentProfile.Identity, Language = lang }, JsonOptions);
                     var filename = storage.WriteVersion(jobId, document.Id, number, json);
                     db.GeneratedDocumentVersions.Add(new GeneratedDocumentVersion { DocumentId = document.Id, Number = number,
                         ContentFileName = filename, ProfileVersion = profileVersion,
@@ -92,6 +105,14 @@ public static class DocumentEndpoints
                 await db.SaveChangesAsync(ct);
                 return Results.Ok(await LoadDocuments(jobId, db, storage, ct));
             }
+            catch (CodexExecutionException e)
+            { return Results.Problem(statusCode: 503, title: e.Message, extensions: new Dictionary<string, object?> { ["code"] = e.Code }); }
+            catch (System.ComponentModel.Win32Exception)
+            { return Results.Problem(statusCode: 503, title: "Codex kunne ikke startes på denne Mac. Kontrollér installation og backendens tilladelser.", extensions: new Dictionary<string, object?> { ["code"] = "codex_start_failed" }); }
+            catch (InvalidDataException)
+            { return Results.Problem(statusCode: 502, title: "AI-udkastet bestod ikke kontrollen af dokumentstruktur eller kildehenvisninger. Prøv igen; der er ikke gemt et nyt udkast.", extensions: new Dictionary<string, object?> { ["code"] = "document_validation_failed" }); }
+            catch (JsonException)
+            { return Results.Problem(statusCode: 502, title: "Codex returnerede et ugyldigt dokumentformat. Prøv igen.", extensions: new Dictionary<string, object?> { ["code"] = "document_output_invalid" }); }
             catch (OperationCanceledException) when (!ct.IsCancellationRequested)
             { return Results.Problem(statusCode: 504, title: "Codex brugte for lang tid på dokumentudkastet."); }
             catch (Exception e) when (!ct.IsCancellationRequested && e is not OutOfMemoryException)
@@ -123,7 +144,7 @@ public static class DocumentEndpoints
             if (selected is null) return Results.Problem(statusCode: 404, title: "Dokumentversionen blev ikke fundet.");
             var content = JsonSerializer.Deserialize<DocumentContent>(storage.ReadVersion(document.JobId, id, selected.ContentFileName), JsonOptions);
             if (content is null) return Results.Problem(statusCode: 500, title: "Dokumentet kunne ikke læses.");
-            var bytes = ExportDocx(content);
+            var bytes = DocumentExporter.Export(content, document.Kind);
             return Results.File(bytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", $"career-agent-{document.Kind.ToLowerInvariant()}-v{selected.Number}.docx");
         });
     }
@@ -147,41 +168,13 @@ public static class DocumentEndpoints
         var errors = new Dictionary<string, string[]>();
         if (content is null || string.IsNullOrWhiteSpace(content.Title) || content.Title.Length > 180 || (content.Subtitle?.Length ?? 0) > 180 || content.Sections is null || content.Sections.Length is < 1 or > 12)
             errors["content"] = ["Dokumentets titel eller struktur er ugyldig."];
-        else if (content.Sections.Any(s => string.IsNullOrWhiteSpace(s.Heading) || s.Heading.Length > 100 || s.Blocks is null || s.Blocks.Length is < 1 or > 16 || s.Blocks.Any(b => string.IsNullOrWhiteSpace(b.Text) || b.Text.Length > 1600 || b.Type is not ("paragraph" or "bullet") || b.Evidence is null || b.Evidence.Length is < 1 or > 8 || b.Evidence.Any(e => string.IsNullOrWhiteSpace(e.Id) || e.Id.Length > 100 || string.IsNullOrWhiteSpace(e.Quote) || e.Quote.Length > 400))))
+        else if (content.Sections.Any(s => string.IsNullOrWhiteSpace(s.Heading) || s.Heading.Length > 100 || s.Page is not (null or 1 or 2) || s.Blocks is null || s.Blocks.Length is < 1 or > 16 || s.Blocks.Any(b => string.IsNullOrWhiteSpace(b.Text) || b.Text.Length > 1600 || b.Type is not ("paragraph" or "bullet" or "entry" or "subheading") || (b.Label?.Length ?? 0) > 200 || (b.Period?.Length ?? 0) > 100 || (b.Technologies?.Length ?? 0) > 400 || b.Evidence is null || b.Evidence.Length is < 1 or > 8 || b.Evidence.Any(e => string.IsNullOrWhiteSpace(e.Id) || e.Id.Length > 100 || string.IsNullOrWhiteSpace(e.Quote) || e.Quote.Length > 400))))
             errors["content"] = ["En dokumentsektion indeholder ugyldige tekstblokke."];
-        else if (content!.Sections.Sum(s => s.Heading.Length + s.Blocks.Sum(b => b.Text.Length)) + content.Title.Length + (content.Subtitle?.Length ?? 0) > 14_000)
+        else if (content!.Sections.Sum(s => s.Heading.Length + s.Blocks.Sum(b => b.Text.Length + (b.Label?.Length ?? 0) + (b.Period?.Length ?? 0) + (b.Technologies?.Length ?? 0))) + content.Title.Length + (content.Subtitle?.Length ?? 0) > 14_000)
             errors["content"] = ["Dokumentudkastet er for langt."];
+        if (content?.Identity is not null && !DocumentProfileStore.Valid(new(content.Identity, "", "", "", "")))
+            errors["identity"] = ["Kontaktoplysningerne er for lange eller ugyldige."];
+        if (content?.Language is not (null or "Dansk" or "English")) errors["language"] = ["Vælg dansk eller engelsk."];
         return errors;
-    }
-    private static byte[] ExportDocx(DocumentContent content)
-    {
-        using var stream = new MemoryStream();
-        using (var word = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document, true))
-        {
-            var main = word.AddMainDocumentPart(); var body = new Body(); main.Document = new Document(body);
-            body.Append(StyledParagraph(content.Title, "Title"));
-            if (!string.IsNullOrWhiteSpace(content.Subtitle)) body.Append(StyledParagraph(content.Subtitle!, "Subtitle"));
-            foreach (var section in content.Sections)
-            {
-                body.Append(StyledParagraph(section.Heading, "Heading2"));
-                foreach (var block in section.Blocks)
-                    body.Append(StyledParagraph(block.Type == "bullet" ? "•  " + block.Text : block.Text, "Normal"));
-            }
-            var properties = new SectionProperties(new PageMargin { Top = 850, Bottom = 850, Left = 1000, Right = 1000 });
-            body.Append(properties); main.Document.Save();
-        }
-        return stream.ToArray();
-    }
-    private static Paragraph StyledParagraph(string text, string style)
-    {
-        var title = style == "Title"; var subtitle = style == "Subtitle"; var heading = style == "Heading2";
-        var paragraphProperties = new ParagraphProperties(new SpacingBetweenLines
-        { Before = heading ? "300" : "0", After = title ? "80" : heading ? "100" : "140" });
-        if (title) paragraphProperties.Append(new Justification { Val = JustificationValues.Center });
-        var runProperties = new RunProperties(new RunFonts { Ascii = "Aptos", HighAnsi = "Aptos" },
-            new FontSize { Val = title ? "34" : heading ? "24" : subtitle ? "22" : "21" },
-            new Color { Val = title || heading ? "0F5B57" : subtitle ? "64748B" : "263238" });
-        if (title || heading) runProperties.Append(new Bold());
-        return new Paragraph(paragraphProperties, new Run(runProperties, new Text(text) { Space = SpaceProcessingModeValues.Preserve }));
     }
 }

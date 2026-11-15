@@ -1,6 +1,6 @@
 export const statuses = { New: 'Ny', Saved: 'Gemt', Dismissed: 'Fravalgt', Applied: 'Ansøgt', Interview: 'Samtale', Offer: 'Tilbud', Rejected: 'Afslag' } as const;
 export type Status = keyof typeof statuses;
-export type Job = { id: string; title: string; company: string; location: string; sourceUrl: string; status: Status; createdAt: string; description: string; score: number | null; eligibility: string; matchReason: string; matchDetails: string; seenAt: string | null; isActive: boolean; possibleDuplicateOf: string | null; aiAssessment: string | null; aiModel: string | null; publishedAt: string | null; deadline: string | null; statusVerifiedAt: string | null; country: string; employmentType: string; workplaceType: string };
+export type Job = { id: string; title: string; company: string; location: string; sourceUrl: string; status: Status; createdAt: string; description: string; score: number | null; eligibility: string; matchReason: string; matchDetails: string; seenAt: string | null; isActive: boolean; isImported: boolean; possibleDuplicateOf: string | null; aiAssessment: string | null; aiModel: string | null; publishedAt: string | null; deadline: string | null; statusVerifiedAt: string | null; country: string; employmentType: string; workplaceType: string };
 export type NewJob = Pick<Job, 'title' | 'company' | 'location' | 'sourceUrl'>;
 const base = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5080').replace(/\/$/, '');
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -28,8 +28,13 @@ export const analyzeJob = (id: string) => request<Job>(`/api/jobs/${id}/analysis
 export const recalculate = () => request<{ status: string }>('/api/matching/recalculate', { method: 'POST' });
 
 export type Reference = { id: string; kind: 'Cv' | 'Application'; displayName: string; fileType: string; sizeBytes: number; createdAt: string };
-export type DocumentBlock = { type: 'paragraph' | 'bullet'; text: string; evidence: { id: string; quote: string }[] };
-export type DocumentContent = { title: string; subtitle: string | null; sections: { heading: string; blocks: DocumentBlock[] }[] };
+export type DocumentBlock = { type: 'paragraph' | 'bullet' | 'entry' | 'subheading'; text: string; label?: string | null; period?: string | null; technologies?: string | null; evidence: { id: string; quote: string }[] };
+export type DocumentIdentity = { fullName: string; email: string; phone: string; location: string; links: string };
+export type DocumentProfile = { identity: DocumentIdentity; experience: string; education: string; projects: string; motivation: string };
+export const emptyDocumentProfile: DocumentProfile = { identity: { fullName: '', email: '', phone: '', location: '', links: '' }, experience: '', education: '', projects: '', motivation: '' };
+export const getDocumentProfile = () => request<DocumentProfile>('/api/document-profile');
+export const saveDocumentProfile = (profile: DocumentProfile) => request<DocumentProfile>('/api/document-profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ profile, confirmed: true }) });
+export type DocumentContent = { title: string; subtitle: string | null; identity?: DocumentIdentity | null; language?: 'Dansk' | 'English' | null; sections: { heading: string; page?: 1 | 2 | null; blocks: DocumentBlock[] }[] };
 export type DocumentVersion = { id: string; number: number; createdAt: string; engine: string; referenceIds: string[]; content: DocumentContent };
 export type DocumentHistory = { id: string; jobId: string; kind: 'Cv' | 'Application'; versions: DocumentVersion[] };
 export const getReferences = () => request<Reference[]>('/api/references');

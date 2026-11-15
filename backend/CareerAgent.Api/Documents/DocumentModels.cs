@@ -33,9 +33,24 @@ public sealed class GeneratedDocumentVersion
 }
 
 public sealed record DocumentEvidence(string Id, string Quote);
-public sealed record DocumentBlock(string Type, string Text, DocumentEvidence[] Evidence);
-public sealed record DocumentSection(string Heading, DocumentBlock[] Blocks);
-public sealed record DocumentContent(string Title, string? Subtitle, DocumentSection[] Sections);
+public sealed record DocumentBlock(string Type, string Text, DocumentEvidence[] Evidence)
+{
+    public string? Label { get; init; }
+    public string? Period { get; init; }
+    public string? Technologies { get; init; }
+}
+public sealed record DocumentSection(string Heading, DocumentBlock[] Blocks)
+{
+    public int? Page { get; init; }
+}
+public sealed record DocumentIdentity(string FullName, string Email, string Phone, string Location, string Links);
+public sealed record DocumentProfile(DocumentIdentity Identity, string Experience, string Education, string Projects, string Motivation);
+public sealed record SaveDocumentProfileRequest(DocumentProfile? Profile, bool Confirmed);
+public sealed record DocumentContent(string Title, string? Subtitle, DocumentSection[] Sections)
+{
+    public DocumentIdentity? Identity { get; init; }
+    public string? Language { get; init; }
+}
 public sealed record ReferenceDto(Guid Id, string Kind, string DisplayName, string FileType, long SizeBytes, DateTime CreatedAt);
 public sealed record DocumentVersionDto(Guid Id, int Number, DateTime CreatedAt, string Engine, Guid[] ReferenceIds, DocumentContent Content);
 public sealed record DocumentHistoryDto(Guid Id, Guid JobId, string Kind, DocumentVersionDto[] Versions);

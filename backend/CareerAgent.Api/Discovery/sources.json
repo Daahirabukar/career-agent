@@ -77,17 +77,6 @@
     "note": "Kandidat til kildekortlægning; karriereadresse/integrationsadgang er endnu ikke verificeret. Ingen automatiske kald."
   },
   {
-    "id": "lunar",
-    "company": "Lunar",
-    "provider": "Pending",
-    "board": "",
-    "region": "",
-    "enabled": false,
-    "careerUrl": "https://www.lunar.app",
-    "evidence": "",
-    "note": "Kandidat til kildekortlægning; karriereadresse/integrationsadgang er endnu ikke verificeret. Ingen automatiske kald."
-  },
-  {
     "id": "danske-commodities",
     "company": "Danske Commodities",
     "provider": "Pending",
@@ -198,17 +187,6 @@
     "note": "Kandidat til kildekortlægning; karriereadresse/integrationsadgang er endnu ikke verificeret. Ingen automatiske kald."
   },
   {
-    "id": "twoday",
-    "company": "twoday",
-    "provider": "Pending",
-    "board": "",
-    "region": "",
-    "enabled": false,
-    "careerUrl": "https://www.twoday.dk",
-    "evidence": "",
-    "note": "Kandidat til kildekortlægning; karriereadresse/integrationsadgang er endnu ikke verificeret. Ingen automatiske kald."
-  },
-  {
     "id": "lego",
     "company": "LEGO",
     "provider": "Pending",
@@ -218,5 +196,60 @@
     "careerUrl": "https://www.lego.com/careers",
     "evidence": "",
     "note": "Kandidat til kildekortlægning; karriereadresse/integrationsadgang er endnu ikke verificeret. Ingen automatiske kald."
+  },
+  {
+    "id": "it-minds",
+    "company": "IT Minds",
+    "provider": "Teamtailor",
+    "board": "itminds2.teamtailor.com",
+    "region": "DK",
+    "enabled": true,
+    "careerUrl": "https://itminds2.teamtailor.com",
+    "evidence": "https://support.teamtailor.com/en/articles/11171756-rss-feed-how-to-guide",
+    "note": "Offentligt, dokumenteret RSS-jobfeed live-verificeret 2026-11-11. Kun læsning; ingen ansøgningsendpoints. Et feed på 100 eller flere opslag afvises som potentielt ufuldstændigt."
+  },
+  {
+    "id": "lunar",
+    "company": "Lunar",
+    "provider": "Teamtailor",
+    "board": "jobs.lunar.app",
+    "region": "DK",
+    "enabled": true,
+    "careerUrl": "https://jobs.lunar.app",
+    "evidence": "https://support.teamtailor.com/en/articles/11171756-rss-feed-how-to-guide",
+    "note": "Offentligt, dokumenteret RSS-jobfeed live-verificeret 2026-11-11. Kun læsning; ingen ansøgningsendpoints. Et feed på 100 eller flere opslag afvises som potentielt ufuldstændigt."
+  },
+  {
+    "id": "monta",
+    "company": "Monta",
+    "provider": "Teamtailor",
+    "board": "careers.monta.com",
+    "region": "DK",
+    "enabled": true,
+    "careerUrl": "https://careers.monta.com",
+    "evidence": "https://support.teamtailor.com/en/articles/11171756-rss-feed-how-to-guide",
+    "note": "Offentligt, dokumenteret RSS-jobfeed live-verificeret 2026-11-11. Kun læsning; ingen ansøgningsendpoints. Et feed på 100 eller flere opslag afvises som potentielt ufuldstændigt."
+  },
+  {
+    "id": "formalize",
+    "company": "Formalize",
+    "provider": "Teamtailor",
+    "board": "career.formalize.com",
+    "region": "DK",
+    "enabled": true,
+    "careerUrl": "https://career.formalize.com",
+    "evidence": "https://support.teamtailor.com/en/articles/11171756-rss-feed-how-to-guide",
+    "note": "Offentligt, dokumenteret RSS-jobfeed live-verificeret 2026-11-11. Kun læsning; ingen ansøgningsendpoints. Et feed på 100 eller flere opslag afvises som potentielt ufuldstændigt."
+  },
+  {
+    "id": "twoday",
+    "company": "twoday Danmark",
+    "provider": "Teamtailor",
+    "board": "twodaydenmark.teamtailor.com",
+    "region": "DK",
+    "enabled": true,
+    "careerUrl": "https://twodaydenmark.teamtailor.com",
+    "evidence": "https://support.teamtailor.com/en/articles/11171756-rss-feed-how-to-guide",
+    "note": "Offentligt, dokumenteret RSS-jobfeed live-verificeret 2026-11-11. Kun læsning; ingen ansøgningsendpoints. Et feed på 100 eller flere opslag afvises som potentielt ufuldstændigt."
   }
 ]

@@ -11,7 +11,7 @@ public sealed record MatchResult(
 
 public static class RuleMatcher
 {
-    public const string Version = "weighted-rules-2";
+    public const string Version = "weighted-rules-3";
 
     // The weights sum to 100 and are kept explicit for auditability.
     public const int SkillsWeight = 30;
@@ -24,7 +24,7 @@ public static class RuleMatcher
 
     private static readonly SkillFamily[] SkillFamilies =
     [
-        new("Backend-sprog", ["c#", "csharp", ".net", "java", "python", "golang", "go language", "ruby", "php", "kotlin"], ["c#", "csharp", ".net", "java", "python"], ["rest", "api", "backend"]),
+        new("Backend-sprog", ["c#", "csharp", "c++", ".net", "java", "python", "golang", "go language", "ruby", "php", "kotlin"], ["c#", "csharp", "c++", ".net", "java", "python"], ["rest", "api", "backend"]),
         new("Backend-framework", ["asp.net", "spring boot", "django", "fastapi", "flask", "express.js", "nestjs", "laravel"], ["asp.net", ".net"], ["api", "backend", "typescript"]),
         new("API'er og integration", ["rest api", "restful", "web api", "graphql", "api integration", "microservices", "microservices"], ["rest", "api"], [".net", "c#", "asp.net"]),
         new("Databaser", ["sql", "postgresql", "postgres", "mysql", "sql server", "mongodb", "database", "databases"], ["sql"], ["api", ".net", "c#"]),
@@ -117,8 +117,8 @@ public static class RuleMatcher
 
     private static int JobTypePoints(string title, SearchProfile profile)
     {
-        if (profile.RoleTerms.Any(t => Has(title, t))) return 20;
-        if (Has(title, "security", "cyber", "automation", "integration", "systems engineer", "it-system")) return 17;
+        if (profile.RoleTerms.Any(t => !string.IsNullOrWhiteSpace(t) && Mentions(title, t)) ||
+            Regex.IsMatch(title, @"software|udvikler|programmør|programmer|back.?end|front.?end|full.?stack|\.net|c#", RegexOptions.IgnoreCase)) return 20;
         return 0;
     }
 
@@ -160,16 +160,15 @@ public static class RuleMatcher
         {
             if (!family.JobTerms.Any(t => Mentions(text, t))) continue;
             applicable.Add(family);
-            var direct = family.ProfileTerms.Any(t => profileTerms.Contains(t) && Mentions(text, t)) ||
-                (family.Name == "Databaser" && profileTerms.Contains("sql")) ||
-                family.JobTerms.Any(term => profileTerms.Contains(term) && Mentions(text, term));
-            if (direct)
+            var directTerm = family.JobTerms.FirstOrDefault(term => profileTerms.Contains(term) && Mentions(text, term));
+            if (directTerm is null && family.Name == "API'er og integration" && profileTerms.Contains("rest") && profileTerms.Contains("api"))
+                directTerm = new[] { "rest api", "restful", "web api" }.FirstOrDefault(term => Mentions(text, term));
+            if (directTerm is not null)
             {
-                var found = family.JobTerms.FirstOrDefault(t => Mentions(text, t));
-                matched.Add(found is null ? family.Name : Display(found));
-                met.Add($"{family.Name}: profilen dokumenterer relevant erfaring med {Display(found ?? family.Name)}.");
+                matched.Add(Display(directTerm));
+                met.Add($"{family.Name}: profilen dokumenterer relevant erfaring med {Display(directTerm)}.");
             }
-            else if (family.TransferableProfileTerms.Any(t => profileTerms.Contains(t)))
+            else if (family.TransferableProfileTerms.Any(t => profileTerms.Contains(t)) || family.ProfileTerms.Any(t => profileTerms.Contains(t)))
             {
                 var found = family.JobTerms.FirstOrDefault(t => Mentions(text, t));
                 transferable.Add(found is null ? family.Name : $"{Display(found)} (overførbart fra {family.Name})");
@@ -187,7 +186,7 @@ public static class RuleMatcher
         var score = (int)Math.Round(raw, MidpointRounding.AwayFromZero);
         var asksExperience = Has(text, "experience", "years", "erfaring", "erhvervserfaring");
         if (asksExperience && profile.Experience?.Any(x => x.Type.Equals("Professional", StringComparison.OrdinalIgnoreCase)) == true)
-            met.Add("Relevant professionel erfaring fra Jyske Bank (varighed i år er ikke verificeret).");
+            met.Add("Profilen dokumenterer professionel erfaring (varighed i år er ikke verificeret).");
         return (score, matched.Distinct().ToArray(), transferable.Distinct().ToArray(), missing.Distinct().ToArray(), met.Distinct().ToArray());
     }
 

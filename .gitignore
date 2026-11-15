@@ -19,6 +19,8 @@ uploads/
 cv/
 cvs/
 resumes/
+document-profile.json
+document-profile-*.tmp
 *.pdf
 *.doc
 *.docx

@@ -1,8 +1,9 @@
 import { test, expect } from '@playwright/test';
 test('manual job creation, status, filter and persistence after reload', async ({ page }) => {
-  const title = `EKSEMPEL · Browsertest ${Date.now()}`;
+  const title = `EKSEMPEL · Software Developer Browsertest ${Date.now()}`;
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Mit joboverblik' })).toBeVisible();
+  await page.getByText('Tilføj et job manuelt', { exact: true }).click();
   await page.getByLabel('Jobtitel').fill(title);
   await page.getByLabel('Virksomhed').fill('EKSEMPEL · Ikke et rigtigt job');
   await page.getByLabel('Sted', { exact: false }).fill('Aarhus');
@@ -13,10 +14,12 @@ test('manual job creation, status, filter and persistence after reload', async (
   await expect(page.getByText(`Status for ${title} er ændret til samtale.`, { exact: true })).toBeVisible();
   await page.reload();
   await expect(page.getByLabel(`Status for ${title}`, { exact: true })).toHaveValue('Interview');
+  await page.getByText('Flere filtre', { exact: true }).click();
   await page.getByLabel('Filtrér status').selectOption('Saved');
   await expect(page.getByRole('heading', { name: title, exact: true })).toHaveCount(0);
   await page.getByLabel('Filtrér status').selectOption('Interview');
   await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
+  await page.getByText('Tilføj et job manuelt', { exact: true }).click();
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByRole('button', { name: 'Gem job', exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -29,5 +32,6 @@ test('empty and unavailable states', async ({ page }) => {
   await page.route('**/api/jobs', route => route.abort());
   await page.reload();
   await expect(page.getByRole('button', { name: 'Prøv igen' })).toBeVisible();
+  await page.getByText('Tilføj et job manuelt', { exact: true }).click();
   await expect(page.getByRole('button', { name: 'Gem job', exact: true })).toBeDisabled();
 });

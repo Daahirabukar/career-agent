@@ -62,7 +62,7 @@ public sealed class DiscoveryTests
         Assert.Equal(10, result.Development);
         Assert.Contains(result.TransferableSkills, s => s.Contains("java", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(result.TransferableSkills, s => s.Contains("Spring Boot", StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(result.MatchedSkills, s => s.Contains("PostgreSQL", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(result.TransferableSkills, s => s.Contains("PostgreSQL", StringComparison.OrdinalIgnoreCase));
         Assert.Equal(result.Skills + result.Experience + result.Role + result.Geography + result.Development, result.Score);
         Assert.InRange(result.Score, 0, 100);
     }
@@ -176,6 +176,59 @@ public sealed class DiscoveryTests
         Assert.True(snapshot.Complete); var job = Assert.Single(snapshot.Jobs);
         Assert.Equal("Aarhus", job.Location); Assert.Contains("C#", job.Description); Assert.DoesNotContain("<p>", job.Description);
         if (provider == "Lever") Assert.Contains("SQL", job.Description);
+    }
+    [Fact]
+    public void Skills_do_not_invent_direct_experience_from_a_related_technology()
+    {
+        var result = RuleMatcher.Evaluate(new Job { Title = "Software Developer", Location = "Aarhus",
+            Description = "Java and C# services with PostgreSQL databases." }, Profile, DateTime.UtcNow);
+        Assert.Contains("C#", result.MatchedSkills);
+        Assert.DoesNotContain("java", result.MatchedSkills);
+        Assert.DoesNotContain("PostgreSQL", result.MatchedSkills);
+        Assert.DoesNotContain(result.MetRequirements, claim => claim.Contains("Jyske Bank"));
+    }
+    [Theory]
+    [InlineData("Security Engineer")]
+    [InlineData("Automation Engineer")]
+    [InlineData("Systems Engineer")]
+    public void Unrequested_adjacent_roles_are_not_treated_as_software_jobs(string title)
+    {
+        Assert.Equal("Excluded", RuleMatcher.Evaluate(new Job { Title = title, Location = "Aarhus" }, Profile, DateTime.UtcNow).Eligibility);
+    }
+    [Fact]
+    public async Task Teamtailor_parses_locations_dates_and_remote_without_fetching_html()
+    {
+        var xml = """
+            <rss version="2.0" xmlns:tt="https://teamtailor.com/locations"><channel><item>
+            <title>Software Developer - Fuldtid</title><guid>synthetic-1</guid>
+            <link>https://example.com/jobs/1</link><description>&lt;p&gt;C# and SQL&lt;/p&gt;</description>
+            <pubDate>Fri, 09 Oct 2026 15:49:26 +0200</pubDate><remoteStatus>hybrid</remoteStatus>
+            <tt:locations><tt:location><tt:city>Aarhus</tt:city><tt:country>Denmark</tt:country></tt:location></tt:locations>
+            </item></channel></rss>
+            """;
+        using var http = new HttpClient(new FixtureHandler(xml));
+        var snapshot = await new JobSourceClient(http).Fetch(Source() with { Provider = "Teamtailor", Board = "example.com" }, default);
+        Assert.True(snapshot.Complete); var job = Assert.Single(snapshot.Jobs);
+        Assert.Equal("Aarhus, Denmark", job.Location); Assert.Equal("Hybrid", job.WorkplaceType);
+        Assert.Equal("Full-time", job.EmploymentType); Assert.Equal("C# and SQL", job.Description);
+        Assert.Equal(new DateTime(2026, 10, 9, 13, 49, 26, DateTimeKind.Utc), job.PublishedAt);
+    }
+    [Theory]
+    [InlineData("<html>not a feed</html>")]
+    [InlineData("<!DOCTYPE rss [<!ENTITY x SYSTEM 'file:///etc/passwd'>]><rss><channel><title>&x;</title></channel></rss>")]
+    [InlineData("<rss><channel><item><title>Software Developer</title><guid>1</guid><link>http://example.com/1</link></item></channel></rss>")]
+    public async Task Teamtailor_rejects_invalid_or_unsafe_feeds(string xml)
+    {
+        using var http = new HttpClient(new FixtureHandler(xml));
+        await Assert.ThrowsAnyAsync<Exception>(() => new JobSourceClient(http).Fetch(Source() with { Provider = "Teamtailor", Board = "example.com" }, default));
+    }
+    [Fact]
+    public async Task Teamtailor_capped_feed_is_not_a_complete_snapshot()
+    {
+        var items = string.Concat(Enumerable.Range(0, 100).Select(i => $"<item><title>Software Developer</title><guid>{i}</guid><link>https://example.com/{i}</link></item>"));
+        using var http = new HttpClient(new FixtureHandler($"<rss><channel>{items}</channel></rss>"));
+        var snapshot = await new JobSourceClient(http).Fetch(Source() with { Provider = "Teamtailor", Board = "example.com" }, default);
+        Assert.False(snapshot.Complete);
     }
     private sealed class FixtureHandler(string json) : HttpMessageHandler
     { protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(json) }); }

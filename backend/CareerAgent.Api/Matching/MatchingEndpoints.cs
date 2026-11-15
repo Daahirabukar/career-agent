@@ -30,6 +30,8 @@ public static class MatchingEndpoints
                 job.AiModel = CodexMatcher.Version;
                 await db.SaveChangesAsync(ct); return Results.Ok(job);
             }
+            catch (CodexExecutionException e)
+            { return Results.Problem(statusCode: 503, title: e.Message, extensions: new Dictionary<string, object?> { ["code"] = e.Code }); }
             catch (Exception e) when (!ct.IsCancellationRequested && e is not OutOfMemoryException)
             { return Results.Problem(statusCode: 503, title: "Codex-vurderingen kunne ikke gennemføres. Kontrollér profil, ChatGPT-login og kvote. Lokal score er bevaret."); }
             finally { gate.Lock.Release(); }

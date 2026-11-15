@@ -102,6 +102,28 @@ public sealed class DocumentApiTests
         Assert.Equal(0, ((FakeDocumentGenerator)app.Services.GetRequiredService<IDocumentGenerator>()).Calls);
     }
 
+    [Fact]
+    public async Task Generation_failure_returns_actionable_problem_details_without_raw_private_output()
+    {
+        using var app = new ApiFactory(); using var client = app.OpenClient();
+        var created = await client.PostAsJsonAsync("/api/jobs", new { title = "Synthetic Software Developer", company = "Example" });
+        var id = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        await AddJobDescription(app, id);
+        var generator = (FakeDocumentGenerator)app.Services.GetRequiredService<IDocumentGenerator>();
+        generator.Failure = CareerAgent.Api.Matching.CodexExecution.Failure("Operation not permitted private-test-secret");
+        var response = await client.PostAsJsonAsync($"/api/jobs/{id}/documents/generate", new { kind = "Both", language = "Dansk", referenceIds = Array.Empty<Guid>() });
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+        var text = await response.Content.ReadAsStringAsync();
+        using var problem = JsonDocument.Parse(text);
+        Assert.Equal("codex_start_blocked", problem.RootElement.GetProperty("code").GetString());
+        Assert.DoesNotContain("private-test-secret", text);
+        Assert.Empty(await client.GetFromJsonAsync<DocumentHistoryDto[]>($"/api/jobs/{id}/documents") ?? []);
+        generator.Failure = new InvalidDataException("Private generated text must never appear in an error");
+        response = await client.PostAsJsonAsync($"/api/jobs/{id}/documents/generate", new { kind = "Both", language = "Dansk" });
+        Assert.Equal(HttpStatusCode.BadGateway, response.StatusCode);
+        Assert.Contains("document_validation_failed", await response.Content.ReadAsStringAsync());
+    }
+
     private static MemoryStream CreateReferenceDocx()
     {
         var stream = new MemoryStream();

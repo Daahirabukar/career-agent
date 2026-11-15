@@ -32,6 +32,7 @@ builder.Services.AddSingleton<ProfileStore>();
 builder.Services.AddSingleton<AnalysisGate>();
 builder.Services.AddSingleton<ICodexMatcher, CodexMatcher>();
 builder.Services.AddSingleton<DocumentStorage>();
+builder.Services.AddSingleton<DocumentProfileStore>();
 builder.Services.AddSingleton<IDocumentGenerator, CodexDocumentGenerator>();
 builder.Services.AddSingleton<DocumentGenerationGate>();
 builder.Services.AddSingleton<DiscoveryGate>();
